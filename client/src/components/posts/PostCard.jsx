@@ -86,6 +86,9 @@ export const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
         postId={post._id}
         initialScore={post.score}
         initialUserVote={post.userVote}
+        onVoteUpdate={(newScore, newUserVote) => {
+          if (onPostUpdated) onPostUpdated({ ...post, score: newScore, userVote: newUserVote });
+        }}
       />
 
       {/* Right Column: Main Content */}

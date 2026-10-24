@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import {
   Home,
@@ -10,12 +10,23 @@ import {
   X,
   Plus,
   LogIn,
+  Search,
 } from 'lucide-react';
 
 export const MobileDrawer = ({ isOpen, onClose, onOpenCreateCommunity }) => {
   const { isAuthenticated, user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [mobileQuery, setMobileQuery] = useState('');
 
   if (!isOpen) return null;
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (mobileQuery.trim()) {
+      onClose();
+      navigate(`/search?q=${encodeURIComponent(mobileQuery.trim())}`);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
@@ -43,7 +54,22 @@ export const MobileDrawer = ({ isOpen, onClose, onOpenCreateCommunity }) => {
             </button>
           </div>
 
-          <div className="mt-5 space-y-1">
+          <form onSubmit={handleSearch} className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-400">
+                <Search className="w-3.5 h-3.5" />
+              </div>
+              <input
+                type="text"
+                value={mobileQuery}
+                onChange={(e) => setMobileQuery(e.target.value)}
+                placeholder="Search circles & posts..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-neutral-100 border border-transparent rounded-xl focus:bg-white focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 text-neutral-900"
+              />
+            </div>
+          </form>
+
+          <div className="mt-4 space-y-1">
             <NavLink
               to="/"
               onClick={onClose}

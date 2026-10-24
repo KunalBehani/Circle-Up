@@ -38,6 +38,15 @@ export const LeftSidebar = ({ onOpenCreateCommunity }) => {
     };
 
     fetchJoined();
+
+    const handleMembershipChange = () => {
+      fetchJoined();
+    };
+
+    window.addEventListener('circleup:membership_changed', handleMembershipChange);
+    return () => {
+      window.removeEventListener('circleup:membership_changed', handleMembershipChange);
+    };
   }, [isAuthenticated, user]);
 
   const navLinkClass = ({ isActive }) =>

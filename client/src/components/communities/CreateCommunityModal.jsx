@@ -50,6 +50,7 @@ export const CreateCommunityModal = ({ isOpen, onClose }) => {
 
       if (res.data?.success) {
         success(`Created c/${res.data.community.slug} successfully!`);
+        window.dispatchEvent(new CustomEvent('circleup:membership_changed'));
         setName('');
         setDescription('');
         onClose();

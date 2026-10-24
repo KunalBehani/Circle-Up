@@ -183,6 +183,9 @@ export const PostDetailPage = () => {
           postId={post._id}
           initialScore={post.score}
           initialUserVote={post.userVote}
+          onVoteUpdate={(newScore, newUserVote) =>
+            setPost((prev) => ({ ...prev, score: newScore, userVote: newUserVote }))
+          }
         />
 
         <div className="flex-1 min-w-0">

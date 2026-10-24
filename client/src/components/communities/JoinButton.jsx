@@ -43,6 +43,7 @@ export const JoinButton = ({
           setIsMember(false);
           success(res.data.message || 'Left community');
           if (onToggle) onToggle(false, res.data.memberCount);
+          window.dispatchEvent(new CustomEvent('circleup:membership_changed'));
         }
       } else {
         const res = await api.post(`/communities/${communityId}/join`);
@@ -50,6 +51,7 @@ export const JoinButton = ({
           setIsMember(true);
           success(res.data.message || 'Joined community!');
           if (onToggle) onToggle(true, res.data.memberCount);
+          window.dispatchEvent(new CustomEvent('circleup:membership_changed'));
         }
       }
     } catch (err) {
