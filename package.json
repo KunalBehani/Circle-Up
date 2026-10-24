@@ -1,0 +1,17 @@
+{
+  "name": "circleup",
+  "version": "1.0.0",
+  "description": "CircleUp — A Complete Reddit-Inspired Community Platform",
+  "scripts": {
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build": "npm --prefix client run build",
+    "seed": "npm --prefix server run seed",
+    "test:server": "npm --prefix server test",
+    "test:client": "npm --prefix client test",
+    "test": "npm run test:server && npm run test:client"
+  },
+  "keywords": ["community", "reddit", "react", "express", "mongodb"],
+  "author": "CircleUp Team",
+  "license": "ISC"
+}
