@@ -1,365 +1,421 @@
-# CircleUp — Interest-Based Community Discussion Platform
+# CircleUp — Find Your People. Join the Conversation.
 
-CircleUp is an editorial-style, interest-based community platform inspired by Reddit's discussion model. Built for modern web experiences, CircleUp enables users to discover and subscribe to interest circles, initiate discussions, share external articles, upvote and downvote content, participate in threaded conversations, and curate discussions.
+**A Reddit-inspired community platform built for discovering communities, sharing ideas, and connecting with people who share your interests.**
 
-Designed and engineered as a full-stack undergraduate capstone submission, the platform features a custom brand identity (warm off-white surfaces, crisp typography, and restrained indigo/violet accents), atomic database operations, strict ownership authorization, and reliable end-to-end workflows.
+CircleUp is a full-stack web application where users can explore interest-based communities, publish posts, participate in discussions, and share visual content. It combines a responsive React interface with a Node.js and Express API, MongoDB persistence, JWT-based authentication, and Cloudinary-powered media uploads.
 
----
-
-## 1. Problem Statement & Proposed Solution
-
-### The Problem
-Mainstream social discussion networks have become overly cluttered with algorithmic ad bloat, dark patterns, and noisy interfaces. Additionally, building robust community discussion systems involves non-trivial engineering hurdles:
-1. Concurrency anomalies when calculating community member counts and post scores.
-2. Duplicate vote injection when users click repeatedly.
-3. Inconsistent client-side state when refreshing nested dynamic routes (`/c/:communityName`, `/post/:postId`).
-4. Flawed authorization where modifying an ID in an API payload allows altering another user's content.
-
-### The CircleUp Solution
-CircleUp implements:
-- **Calm, Editorial UX**: A 3-column desktop layout with high-readability typography, subtle shadows, and responsive mobile drawers.
-- **Atomic MongoDB Counter Tracking**: `$inc` and `$addToSet` operations combined with compound unique indexes to guarantee database invariants without race conditions.
-- **State Machine Voting**: Server-side transitions for Upvote (+1), Downvote (-1), Vote Toggle (+2 / -2), and Vote Revocation (0) with duplicate prevention.
-- **Documented Gravity-Based Trending Algorithm**: Dynamically balances community engagement and recency.
-- **Strict Server-Side Ownership Controls**: Every update and delete operation verifies cryptographic ownership before mutation.
+<p align="center">
+  <a href="https://github.com/KunalBehani/Circle-Up">
+    <img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github" alt="GitHub Repository" />
+  </a>
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 18" />
+  <img src="https://img.shields.io/badge/Node.js-Backend-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/MongoDB-Database-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+</p>
 
 ---
 
-## 2. Target Users
+## Table of Contents
 
-- **Developers & Engineers**: Sharing technical articles, architectural patterns, and debugging stories in `c/webdev` and `c/technology`.
-- **Designers**: Discussing typography, micro-interactions, and design tokens in `c/design`.
-- **Gamers & Creators**: Showcasing procedural generation and indie mechanics in `c/gaming`.
-- **Students & General Hobbyists**: Asking questions, sharing advice, and debating ideas in `c/askcircle`.
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [API Overview](#api-overview)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Security Notes](#security-notes)
+- [Future Improvements](#future-improvements)
+- [Author](#author)
+- [License](#license)
 
----
+## Overview
 
-## 3. Technology Stack
+Online communities bring people together around shared interests. CircleUp aims to make those interactions simple by providing a central place to discover communities, publish content, and participate in conversations.
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| **Frontend Framework** | React 18 + Vite | Rapid Hot Module Replacement, standard JavaScript (ES Modules, no TSX/TypeScript). |
-| **Styling** | Tailwind CSS v3 | Custom editorial palette (`#F8F9FA` background, `#4F46E5` indigo accents, subtle borders). |
-| **Routing** | React Router v6 | Dynamic routing (`/c/:communityName`, `/post/:postId`, `/profile/:username`), protected routes. |
-| **State Management** | Context API | Global authentication session (`AuthContext`) and toast notifications (`ToastContext`). |
-| **API Client** | Axios | Interceptors for Bearer token injection and automatic 401 session expiry handling. |
-| **Icons** | Lucide React | Modern, clean vector iconography. |
-| **Backend Runtime** | Node.js + Express.js | Modular RESTful architecture (routes, controllers, models, middleware). |
-| **Database** | MongoDB Atlas / Mongoose | Schema validation, compound unique indexing, atomic `$inc` updates. |
-| **Testing** | Vitest + Supertest | 30 integration tests for backend workflows and 6 unit tests for frontend components. |
-| **Deployment** | Vercel (Client) + Render (Server) | Zero-friction production deployment with SPA rewrites and health monitoring. |
+The project was developed as a full-stack application, with an emphasis on component-based frontend development, modular backend architecture, authentication, database integration, API design, and deployment.
 
----
+### Why CircleUp?
 
-## 4. Architecture Overview
+- **Community-driven:** Organize discussions around shared interests.
+- **Interactive:** Support posts, comments, and voting.
+- **Media-friendly:** Upload images and videos alongside written content.
+- **Full-stack:** Connect a React frontend to a persistent database-backed API.
+- **Deployment-ready:** Separate frontend and backend deployments.
 
-```mermaid
-graph TD
-    Client["React + Vite Client\n(Tailwind CSS, Context API)"]
-    Vercel["Vercel SPA Hosting\n(vercel.json rewrites)"]
-    API["Express REST API\n(Node.js on Render)"]
-    AuthGuard["requireAuth Middleware\n(JWT Verification)"]
-    RateLimit["Rate Limiting & Helmet"]
-    DB[(MongoDB Atlas / Mongo Memory Server)]
+## Features
 
-    Client -->|HTTPS / REST API| API
-    Client -.->|Static Assets| Vercel
-    API --> RateLimit
-    RateLimit --> AuthGuard
-    AuthGuard --> Controllers["Controllers\n(Auth, Communities, Posts, Votes, Comments, Search)"]
-    Controllers --> DB
+### Communities and Discovery
+- Browse interest-based communities.
+- Explore community-specific discussions.
+- Search for relevant content and communities.
+
+### Posts and Discussions
+- Create and view posts.
+- Organize posts by community and content type.
+- Open individual post detail pages.
+- Participate in discussions through comments.
+- Vote on posts.
+
+### Image and Video Uploads
+- Upload images and videos with posts.
+- Store media assets in Cloudinary.
+- Save media metadata with posts in MongoDB.
+- Display uploaded media in feed cards and individual post pages.
+- Validate supported media types and upload sizes on the server.
+
+### Authentication
+- User registration and login.
+- JWT-based authentication.
+- Protected API operations.
+- Bearer-token authentication from the frontend.
+
+### Responsive User Experience
+- React-based, component-driven interface.
+- Client-side navigation with React Router.
+- Reusable UI components.
+- API integration using Axios.
+
+> Feature availability may depend on the current implementation. Check the deployed application for the latest behavior.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 |
+| Build tool | Vite |
+| Language | JavaScript (ES modules) |
+| Routing | React Router |
+| API client | Axios |
+| Backend | Node.js and Express |
+| Database | MongoDB with Mongoose |
+| Authentication | JSON Web Tokens (JWT) |
+| Media storage | Cloudinary |
+| API security | Helmet, CORS, rate limiting |
+| Logging | Morgan |
+| Frontend hosting | Vercel |
+| Backend hosting | Render |
+| Version control | Git and GitHub |
+| Testing | Vitest |
+
+## Architecture
+
+CircleUp uses a separate frontend and backend architecture.
+
+```text
+                  ┌──────────────────────┐
+                  │       User            │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │  React + Vite Client │
+                  │      (Vercel)         │
+                  └──────────┬───────────┘
+                             │ HTTPS / REST API
+                             ▼
+                  ┌──────────────────────┐
+                  │  Express API Server  │
+                  │      (Render)        │
+                  └──────┬─────────┬─────┘
+                         │         │
+                ┌────────▼───┐  ┌──▼──────────┐
+                │  MongoDB   │  │  Cloudinary │
+                │   Atlas    │  │ Media Assets│
+                └────────────┘  └─────────────┘
 ```
 
----
+### Request Flow
 
-## 5. Core Workflows & Engineering Decisions
+1. The user interacts with the React frontend.
+2. Axios sends HTTP requests to the Express API.
+3. Authentication middleware verifies JWTs for protected operations.
+4. Mongoose reads or writes application data in MongoDB.
+5. For media posts, the backend uploads files to Cloudinary and stores the resulting media references in MongoDB.
+6. The API returns the result to the frontend for rendering.
 
-### Workflow 1: Authentication & Profile Hydration
-- Secure password hashing using `bcryptjs` (salt rounds: 10).
-- Stateless JWT tokens passed via `Authorization: Bearer <token>`.
-- Passwords hashes are configured with `select: false` on the User model and never returned in API payloads.
-- Client automatically checks session validity upon initial mount via `GET /api/auth/me`.
+## Project Structure
 
-### Workflow 2: Communities & Membership Invariants
-- Each community features a unique display name and a normalized slug (`c/slug`).
-- Joining or leaving a community uses MongoDB atomic updates:
-  ```javascript
-  await Community.findByIdAndUpdate(communityId, {
-    $addToSet: { members: userId },
-    $inc: { memberCount: 1 }
-  });
-  ```
-- Eliminates client-side array discrepancies and concurrent count drift.
-
-### Workflow 3: Posts & Voting State Machine
-- **Text & Link Posts**: Link posts strictly validate protocol (`http://` or `https://`) and render with `rel="noopener noreferrer"`.
-- **Compound Unique Index**: `Vote` collection enforces `{ user: 1, post: 1 }` unique compound index.
-- **Vote Transitions**:
-  - `None -> Upvote (+1)`: Insert vote record, increment score by +1.
-  - `None -> Downvote (-1)`: Insert vote record, increment score by -1.
-  - `Upvote -> Downvote`: Update vote value to -1, decrement score by -2.
-  - `Downvote -> Upvote`: Update vote value to 1, increment score by +2.
-  - `Click Same Vote Again`: Delete vote record, reverse previous contribution.
-
-### Trending Formula
-The platform computes trending ranking using a gravity-based time-decay formula:
-$$\text{TrendingScore} = \frac{\max(\text{score}, 0) + 1}{(\text{hoursSinceCreation} + 2)^{1.5}}$$
-This prioritizes high-scoring posts while naturally decaying older content over time.
-
-### Workflow 4: Comments & Ownership Authorization
-- Flat discussion threads associated with post IDs and user IDs.
-- Creating a comment atomically increments `post.commentCount`.
-- Deleting a comment atomically decrements `post.commentCount`.
-- Authorization middleware enforces that only the comment or post author can update or delete their respective resources.
-
-### Workflow 5: Global Search & Content Discovery
-- Unified search endpoint `GET /api/search?q=...` performs regex and text queries across posts (title, body) and communities (name, description, slug).
-- Debounced search bar in navbar header and a dedicated `/search` page with category filters.
-
----
-
-## 6. Database Models
-
-```mermaid
-erDiagram
-    USER ||--o{ POST : authors
-    USER ||--o{ COMMENT : writes
-    USER ||--o{ VOTE : casts
-    COMMUNITY ||--o{ POST : contains
-    COMMUNITY }o--o{ USER : members
-    POST ||--o{ COMMENT : receives
-    POST ||--o{ VOTE : receives
-
-    USER {
-        ObjectId _id
-        string username
-        string email
-        string passwordHash
-        string bio
-        string avatar
-        date joinedAt
-    }
-
-    COMMUNITY {
-        ObjectId _id
-        string name
-        string slug
-        string description
-        string category
-        ObjectId creator
-        Array members
-        number memberCount
-        string bannerColor
-    }
-
-    POST {
-        ObjectId _id
-        string title
-        string body
-        string type
-        string linkUrl
-        ObjectId community
-        ObjectId author
-        number score
-        number commentCount
-        date createdAt
-    }
-
-    VOTE {
-        ObjectId _id
-        ObjectId user
-        ObjectId post
-        number value
-    }
-
-    COMMENT {
-        ObjectId _id
-        string content
-        ObjectId post
-        ObjectId author
-        date createdAt
-    }
+```text
+Circle-Up/
+├── client/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── posts/
+│   │   │       ├── PostCard.jsx
+│   │   │       └── PostMedia.jsx
+│   │   ├── pages/
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── test/
+│   │   └── ...
+│   ├── vercel.json
+│   ├── vite.config.js
+│   └── package.json
+├── server/
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── cloudinary.js
+│   │   │   ├── db.js
+│   │   │   └── env.js
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   │   └── mediaUpload.js
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── utils/
+│   │   ├── app.js
+│   │   └── server.js
+│   ├── scripts/
+│   └── package.json
+├── package.json
+├── package-lock.json
+└── README.md
 ```
 
----
+*Some files and directories are omitted for brevity.*
 
-## 7. RESTful API Endpoints
-
-### Authentication (`/api/auth`)
-- `POST /register`: Create new user account.
-- `POST /login`: Authenticate and receive JWT.
-- `POST /logout`: Clear session.
-- `GET /me`: Get authenticated user profile (`requireAuth`).
-- `PATCH /profile`: Update user bio and avatar (`requireAuth`).
-
-### Communities (`/api/communities`)
-- `GET /`: List communities with optional `category` and `search` query.
-- `POST /`: Create community (`requireAuth`).
-- `GET /:communityName`: Get community metadata and membership status.
-- `POST /:communityId/join`: Join community (`requireAuth`).
-- `DELETE /:communityId/join`: Leave community (`requireAuth`).
-
-### Posts (`/api/posts`)
-- `GET /`: Retrieve post feed with `sort` (`latest`, `top`, `trending`), `community`, `page`, `limit`.
-- `POST /`: Create new post (`requireAuth`).
-- `GET /:postId`: Retrieve single post details.
-- `PATCH /:postId`: Edit own post (`requireAuth`, author check).
-- `DELETE /:postId`: Delete own post and cascade remove comments/votes (`requireAuth`, author check).
-- `POST /:postId/vote`: Cast or toggle vote (+1, -1) (`requireAuth`).
-- `GET /:postId/vote`: Get user's active vote on post.
-
-### Comments (`/api/comments` & `/api/posts/:postId/comments`)
-- `GET /api/posts/:postId/comments`: List comments for post.
-- `POST /api/posts/:postId/comments`: Add comment (`requireAuth`).
-- `PATCH /api/comments/:commentId`: Edit own comment (`requireAuth`).
-- `DELETE /api/comments/:commentId`: Delete own comment (`requireAuth`).
-
-### Search & Profiles
-- `GET /api/search?q=...`: Global search across posts and communities.
-- `GET /api/users/:username`: Public user profile, submitted posts, and comments.
-- `GET /api/health`: Health monitoring endpoint for uptime and deployment checks.
-
----
-
-## 8. Local Setup & Installation
+## Getting Started
 
 ### Prerequisites
-- Node.js v18+ (tested on Node v20 and v26)
-- npm v9+
 
-### 1. Clone & Install Dependencies
+Install or prepare the following:
+
+- Node.js and npm.
+- Git.
+- A MongoDB database, such as MongoDB Atlas.
+- A Cloudinary account for media uploads.
+
+### 1. Clone the repository
+
 ```bash
-git clone <repository-url>
-cd circleup
-
-# Install backend dependencies
-cd server && npm install
-
-# Install frontend dependencies
-cd ../client && npm install
-cd ..
+git clone https://github.com/KunalBehani/Circle-Up.git
+cd Circle-Up
 ```
 
-### 2. Environment Configuration
-Create `.env` inside `server/`:
+### 2. Install dependencies
+
+Install the root, frontend, and backend dependencies:
+
+```bash
+npm install
+npm --prefix client install
+npm --prefix server install
+```
+
+### 3. Configure the backend
+
+Create a file named `server/.env`:
+
 ```env
-PORT=5000
+PORT=5002
 NODE_ENV=development
-JWT_SECRET=super_secret_jwt_key_min_32_characters_for_circleup
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_long_random_secret
 JWT_EXPIRES_IN=7d
 CLIENT_URL=http://localhost:5173
 
-# Optional: If omitted, CircleUp starts an automated in-memory MongoDB instance!
-MONGODB_URI=
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
-Create `.env` inside `client/`:
+Replace the placeholder values with your own configuration. Never commit real credentials to GitHub.
+
+### 4. Configure the frontend
+
+Create `client/.env.local` with the following:
+
 ```env
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=/api
 ```
 
-### 3. Seed Realistic Demonstration Data
-Populates the database with 5 demo users, 5 communities, 7 posts, 23 votes, and 11 comments:
-```bash
-npm run seed
-```
+The local Vite development server proxies `/api` requests to `http://localhost:5002`, as configured in `client/vite.config.js`.
 
-#### Demo Credentials for Testing:
-| Role | Username | Email | Password |
-|---|---|---|---|
-| Admin / Creator | `demo_user` | `demo@circleup.dev` | `password123` |
-| Developer | `alex_coder` | `alex@example.com` | `password123` |
-| Product Designer | `sarah_ux` | `sarah@example.com` | `password123` |
+If your backend uses a different local port, update the Vite proxy configuration to match.
 
-### 4. Running the Development Servers
-In separate terminals (or from root):
+### 5. Start the application
+
+Open two terminal windows from the project root.
+
+**Terminal 1 — Backend**
+
 ```bash
-# Terminal 1: Backend
 npm run dev:server
+```
 
-# Terminal 2: Frontend
+**Terminal 2 — Frontend**
+
+```bash
 npm run dev:client
 ```
-Open [http://localhost:5173](http://localhost:5173) in your browser.
 
----
+Open the local URL printed by Vite, usually `http://localhost:5173` or another available port.
 
-## 9. Testing Strategy & Execution
+### Available Root Commands
 
-CircleUp features comprehensive automated test suites covering all five mandatory workflows.
+| Command | Description |
+|---|---|
+| `npm run dev:client` | Start the Vite frontend |
+| `npm run dev:server` | Start the backend in watch mode |
+| `npm run build` | Build the frontend for production |
+| `npm run test:client` | Run frontend tests |
+| `npm run test:server` | Run backend tests |
+| `npm test` | Run both test suites |
+| `npm run seed` | Run the backend seed script |
 
-### Run All Tests
+## Environment Variables
+
+Configure these variables in the appropriate environment. Frontend variables prefixed with `VITE_` are exposed to browser code, so they must never contain secrets.
+
+| Variable | Used by | Purpose |
+|---|---|---|
+| `PORT` | Backend | Server port; Render supplies this in production |
+| `NODE_ENV` | Backend | Runtime environment |
+| `MONGODB_URI` | Backend | MongoDB connection string |
+| `JWT_SECRET` | Backend | Secret used to sign and verify JWTs |
+| `JWT_EXPIRES_IN` | Backend | JWT lifetime, such as `7d` |
+| `CLIENT_URL` | Backend | Allowed frontend origin |
+| `CLOUDINARY_CLOUD_NAME` | Backend | Cloudinary account identifier |
+| `CLOUDINARY_API_KEY` | Backend | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Backend | Cloudinary API secret |
+| `VITE_API_BASE_URL` | Frontend | Base URL for API requests |
+
+For production, configure the backend variables in Render and `VITE_API_BASE_URL` in Vercel. The production frontend API base URL should point to the deployed backend API, for example:
+
+```env
+VITE_API_BASE_URL=https://your-render-service.onrender.com/api
+```
+
+Replace the example hostname with your actual Render service URL.
+
+## API Overview
+
+The backend mounts its API routes under `/api`.
+
+| Endpoint | Purpose |
+|---|---|
+| `/api/health` | Backend health check |
+| `/api/auth` | Authentication routes |
+| `/api/communities` | Community operations |
+| `/api/posts` | Post operations |
+| `/api/comments` | Comment operations |
+| `/api/search` | Search operations |
+| `/api/users` | User-related operations |
+
+These are route prefixes, not a complete endpoint specification. For the exact HTTP methods, request bodies, and authentication requirements, refer to the route files in `server/src/routes/`.
+
+### Health Check
+
+After deploying the backend, open:
+
+```text
+https://your-render-service.onrender.com/api/health
+```
+
+A healthy response includes a status of `healthy`.
+
+## Testing
+
+CircleUp uses Vitest for frontend and backend tests.
+
+Run the complete test suite:
+
 ```bash
 npm test
 ```
 
-### Backend Integration Tests (`server/tests/`)
-```bash
-npm run test:server
-```
-Runs 30 integration tests via Vitest & Supertest using an isolated in-memory MongoDB server:
-1. `auth.test.js`: User registration, duplicate checks, login, credential validation, profile updates.
-2. `community.test.js`: Community creation, slug normalization, uniqueness constraints, atomic join/leave counts.
-3. `post.test.js`: Text posts, link posts with URL validation, author ownership guards, feed pagination.
-4. `vote.test.js`: Upvote (+1), downvote (-1), toggles (+2 / -2), vote revocation (0), and compound unique index idempotency.
-5. `comment.test.js`: Comment creation, atomic `commentCount` increment/decrement, and author modification restrictions.
-6. `search.test.js`: Keyword search, sorting algorithms (`latest`, `top`, `trending`), and user karma calculation.
+Or run each suite independently:
 
-### Frontend Component Tests (`client/src/test/`)
 ```bash
 npm run test:client
+npm run test:server
 ```
-Runs 6 unit tests with Vitest, jsdom, and React Testing Library:
-1. `VoteControl.test.jsx`: Verifies score rendering, upvote styling, downvote styling, and optimistic transitions.
-2. `formatters.test.js`: Verifies compact numbers (`1.5k`), URL domain extraction, and relative timestamps.
 
----
+Build the production frontend:
 
-## 10. Production Deployment Guide
+```bash
+npm run build
+```
 
-### A. Database: MongoDB Atlas
-1. Create a free M0 cluster on [MongoDB Atlas](https://www.mongodb.com/atlas).
-2. Under **Database Access**, create a user with read/write privileges.
-3. Under **Network Access**, add IP `0.0.0.0/0` (allow all origins for cloud hosting).
-4. Copy the connection string: `mongodb+srv://<username>:<password>@cluster.mongodb.net/circleup?retryWrites=true&w=majority`.
+Before deploying, verify that tests pass and that the production build completes successfully.
 
-### B. Backend: Render
-1. Create a **New Web Service** on [Render](https://render.com).
-2. Connect your Git repository.
-3. Set **Root Directory** to `server`.
-4. Set **Build Command** to `npm install`.
-5. Set **Start Command** to `npm start`.
-6. Add Environment Variables:
-   - `NODE_ENV`: `production`
-   - `PORT`: `10000`
-   - `MONGODB_URI`: `<your MongoDB Atlas URI>`
-   - `JWT_SECRET`: `<generate a random 32+ character string>`
-   - `JWT_EXPIRES_IN`: `7d`
-   - `CLIENT_URL`: `https://<your-vercel-frontend-url>.vercel.app`
-7. Deploy. Health check endpoint will be live at `https://<your-render-service>.onrender.com/api/health`.
+## Deployment
 
-### C. Frontend: Vercel
-1. Create a **New Project** on [Vercel](https://vercel.com).
-2. Connect your Git repository.
-3. Set **Root Directory** to `client`.
-4. Framework Preset: **Vite**.
-5. Add Environment Variable:
-   - `VITE_API_BASE_URL`: `https://<your-render-service>.onrender.com/api`
-6. Click **Deploy**. Vercel will automatically read `client/vercel.json` to handle client-side SPA routing rewrites.
+### Frontend — Vercel
 
----
+1. Import the GitHub repository into Vercel.
+2. Set the project root directory to `client`.
+3. Select Vite as the framework preset.
+4. Set the build command to `npm run build`.
+5. Set the output directory to `dist`.
+6. Add `VITE_API_BASE_URL` with the deployed Render API URL.
+7. Deploy the project.
 
-## 11. Known Limitations & Future Enhancements
+The `client/vercel.json` configuration supports client-side routing by rewriting requests to `index.html`.
 
-- **Nested Comment Replies**: Currently, comments use a single-level flat discussion hierarchy. Future versions can incorporate recursive parent-child tree models.
-- **Image & Media Uploads**: Currently supports URL links and Dicebear avatars. Future iterations can integrate Cloudinary or AWS S3 for direct image uploads.
-- **Real-Time WebSockets**: Notifications currently refresh on route change. Socket.io could be added for live vote counters.
+### Backend — Render
 
----
+1. Create a Node.js Web Service connected to the GitHub repository.
+2. Set the root directory to `server`.
+3. Set the build command to `npm install`.
+4. Set the start command to `npm start`.
+5. Add the required backend environment variables.
+6. Deploy the service and verify `/api/health`.
 
-## 12. Verification & Integrity Confirmation
+After obtaining the Vercel production URL, set `CLIENT_URL` in Render to that exact origin, including `https://` and without a trailing slash.
 
-- All 30 backend integration tests executed and passed.
-- All 6 frontend unit tests executed and passed.
-- Production build (`npm run build`) compiles cleanly without warnings or errors.
-- Demonstration seed dataset verified with zero errors.
+### Database — MongoDB Atlas
+
+1. Create a MongoDB Atlas deployment.
+2. Configure database access credentials.
+3. Configure network access to permit connections from the backend hosting environment.
+4. Set `MONGODB_URI` in Render.
+5. Verify the database connection in the deployment logs.
+
+Avoid allowing unrestricted database access unless you understand and accept the associated security risks.
+
+### Media — Cloudinary
+
+Configure your Cloudinary credentials as backend environment variables in Render. Media files should be uploaded by the backend, with returned asset URLs and relevant metadata stored in MongoDB.
+
+**Note:** Render's free web services can spin down after inactivity, so the first request after an idle period may take longer.
+
+## Security Notes
+
+- Never commit `.env` files, JWT secrets, database credentials, or Cloudinary secrets.
+- Use a strong, unique `JWT_SECRET` in production.
+- Keep Cloudinary API secrets on the backend only.
+- Validate and restrict uploaded file types and sizes.
+- Use HTTPS for deployed frontend and backend communication.
+- Configure CORS to allow only the frontend origins you intend to trust.
+- Do not put private credentials in `VITE_*` environment variables.
+
+## Future Improvements
+
+Potential areas for further development include:
+
+- Real-time community discussions and notifications.
+- More advanced search and content discovery.
+- User profiles and personalized feeds.
+- Improved moderation and reporting tools.
+- Pagination and performance optimizations for large communities.
+- Expanded automated tests and continuous integration.
+- Accessibility improvements and additional mobile UI refinements.
+
+## Author
+
+**Kunal Behani**
+
+Computer Science student interested in software engineering, full-stack development, and building practical products.
+
+- GitHub: [@KunalBehani](https://github.com/KunalBehani)
+- Project Repository: [Circle-Up](https://github.com/KunalBehani/Circle-Up)
+
+## License
+
+This project currently uses the ISC license declared in the repository's `package.json`. See the repository's license information for the applicable terms.
