@@ -32,6 +32,33 @@ const postSchema = new mongoose.Schema(
         message: 'A valid http:// or https:// URL is required for link posts',
       },
     },
+    media: {
+      type: [
+        {
+          url: {
+            type: String,
+            required: true,
+          },
+          publicId: {
+            type: String,
+            required: true,
+          },
+          type: {
+            type: String,
+            enum: ['image', 'video'],
+            required: true,
+          },
+          format: {
+            type: String,
+            default: '',
+          },
+          width: Number,
+          height: Number,
+          duration: Number,
+        },
+      ],
+      default: [],
+    },
     community: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Community',

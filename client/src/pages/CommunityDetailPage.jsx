@@ -115,16 +115,16 @@ export const CommunityDetailPage = () => {
           style={{ backgroundColor: community.bannerColor || '#4F46E5' }}
         />
 
-        <div className="p-5 sm:p-6 -mt-10 sm:-mt-12">
+        <div className="p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div className="flex items-end gap-3.5">
+            <div className="flex items-center gap-3.5 min-w-0">
               <span
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-xl sm:text-2xl text-white font-black shadow-elevation ring-4 ring-white shrink-0"
                 style={{ backgroundColor: community.bannerColor || '#4F46E5' }}
               >
                 c/
               </span>
-              <div className="pb-1">
+              <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
                     {community.name}

@@ -19,12 +19,26 @@ app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or tests) or matching origins
-      if (!origin || config.nodeEnv === 'development' || origin === config.clientUrl) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive in dev/staging preview
+      // Allow requests without an Origin header (e.g. curl and server-to-server).
+      if (!origin) {
+        return callback(null, true);
       }
+
+      // Allow local frontend development.
+      if (
+        config.nodeEnv === 'development' &&
+        /^http:\/\/localhost:\d+$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+
+      // Allow the configured frontend origin.
+      if (origin === config.clientUrl) {
+        return callback(null, true);
+      }
+
+      // Reject other browser origins in production.
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
   })

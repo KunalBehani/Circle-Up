@@ -1,3 +1,4 @@
+import { PostMedia } from './PostMedia.jsx';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -172,6 +173,7 @@ export const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
             {post.body}
           </p>
         )}
+        <PostMedia media={post.media} />
 
         {/* Footer Actions */}
         <div className="flex items-center gap-3 pt-2 text-xs font-semibold text-neutral-500">

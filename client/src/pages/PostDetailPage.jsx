@@ -1,3 +1,4 @@
+import { PostMedia } from '../components/posts/PostMedia.jsx';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
@@ -267,6 +268,7 @@ export const PostDetailPage = () => {
               {post.body}
             </div>
           )}
+          <PostMedia media={post.media} detail />
 
           {/* Post Actions */}
           <div className="pt-3 border-t border-neutral-100 flex items-center gap-3 text-xs font-semibold text-neutral-500">

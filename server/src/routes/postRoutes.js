@@ -13,11 +13,12 @@ import {
   createComment,
 } from '../controllers/commentController.js';
 import { requireAuth, optionalAuth } from '../middleware/authMiddleware.js';
+import { uploadPostMedia } from '../middleware/mediaUpload.js';
 
 const router = Router();
 
 router.get('/', optionalAuth, getPosts);
-router.post('/', requireAuth, createPost);
+router.post('/', requireAuth, uploadPostMedia, createPost);
 router.get('/:postId', optionalAuth, getPostById);
 router.patch('/:postId', requireAuth, updatePost);
 router.delete('/:postId', requireAuth, deletePost);

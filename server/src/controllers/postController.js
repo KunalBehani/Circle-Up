@@ -1,3 +1,4 @@
+import cloudinary from '../config/cloudinary.js';
 import { Post } from '../models/Post.js';
 import { Community } from '../models/Community.js';
 import { Vote } from '../models/Vote.js';
@@ -152,7 +153,42 @@ export const getPostById = async (req, res, next) => {
   }
 };
 
+const uploadToCloudinary = (file) => {
+  const isVideo = file.mimetype.startsWith('video/');
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'circleup/posts',
+        resource_type: isVideo ? 'video' : 'image',
+      },
+      (error, result) => {
+        if (error) {
+          return reject(error);
+        }
+
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id,
+          type: isVideo ? 'video' : 'image',
+          format: result.format || '',
+          width: result.width,
+          height: result.height,
+          ...(result.duration != null && {
+            duration: result.duration,
+          }),
+        });
+      }
+    );
+
+    stream.end(file.buffer);
+  });
+};
+
+
 export const createPost = async (req, res, next) => {
+  const uploadedMedia = [];
+
   try {
     const { title, body, type = 'text', linkUrl, communityId } = req.body;
 
@@ -164,6 +200,7 @@ export const createPost = async (req, res, next) => {
     }
 
     const trimmedTitle = title.trim();
+
     if (trimmedTitle.length < 3 || trimmedTitle.length > 300) {
       return res.status(400).json({
         success: false,
@@ -171,11 +208,21 @@ export const createPost = async (req, res, next) => {
       });
     }
 
+    if (!['text', 'link'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid post type',
+      });
+    }
+
     let community;
+
     if (isValidObjectId(communityId)) {
       community = await Community.findById(communityId);
     } else {
-      community = await Community.findOne({ slug: Community.slugify(communityId) });
+      community = await Community.findOne({
+        slug: Community.slugify(communityId),
+      });
     }
 
     if (!community) {
@@ -194,18 +241,25 @@ export const createPost = async (req, res, next) => {
       }
     }
 
+    // Upload selected files to Cloudinary.
+    for (const file of req.files || []) {
+      const mediaItem = await uploadToCloudinary(file);
+      uploadedMedia.push(mediaItem);
+    }
+
     const post = await Post.create({
       title: trimmedTitle,
       body: body ? body.trim() : '',
       type,
       linkUrl: type === 'link' ? linkUrl.trim() : '',
+      media: uploadedMedia,
       community: community._id,
       author: req.user._id,
-      score: 1, // Author starts with automatic upvote
+      score: 1,
       commentCount: 0,
     });
 
-    // Record author's upvote
+    // Preserve the existing automatic author upvote.
     await Vote.create({
       user: req.user._id,
       post: post._id,
@@ -216,7 +270,7 @@ export const createPost = async (req, res, next) => {
       .populate('author', 'username avatar bio')
       .populate('community', 'name slug icon bannerColor');
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Post published successfully',
       post: {
@@ -225,9 +279,20 @@ export const createPost = async (req, res, next) => {
       },
     });
   } catch (error) {
+    // Avoid leaving uploaded files behind when post creation fails.
+    await Promise.allSettled(
+      uploadedMedia.map((item) =>
+        cloudinary.uploader.destroy(item.publicId, {
+          resource_type:
+            item.type === 'video' ? 'video' : 'image',
+        })
+      )
+    );
+
     next(error);
   }
 };
+
 
 export const updatePost = async (req, res, next) => {
   try {
@@ -410,8 +475,8 @@ export const votePost = async (req, res, next) => {
         finalUserVote === null
           ? 'Vote removed'
           : finalUserVote === 1
-          ? 'Post upvoted'
-          : 'Post downvoted',
+            ? 'Post upvoted'
+            : 'Post downvoted',
     });
   } catch (error) {
     next(error);

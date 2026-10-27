@@ -5,7 +5,16 @@ import { useToast } from '../hooks/useToast.js';
 import api from '../services/api.js';
 import { Button } from '../components/common/Button.jsx';
 import { Input } from '../components/common/Input.jsx';
-import { FileText, Link2, Send, AlertCircle } from 'lucide-react';
+import {
+  FileText,
+  Link2,
+  Send,
+  AlertCircle,
+  Paperclip,
+  Image as ImageIcon,
+  Video,
+  X,
+} from 'lucide-react';
 
 export const SubmitPage = () => {
   const { isAuthenticated, user } = useAuth();
@@ -21,6 +30,8 @@ export const SubmitPage = () => {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  const [attachments, setAttachments] = useState([]);
+  const [attachmentError, setAttachmentError] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchingCommunities, setFetchingCommunities] = useState(true);
   const [error, setError] = useState('');
@@ -59,6 +70,74 @@ export const SubmitPage = () => {
 
     fetchAllCommunities();
   }, [initialCommunitySlug]);
+  const handleAttachmentSelect = (event, mediaType) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = '';
+
+    setAttachmentError('');
+
+    const allowedTypes =
+      mediaType === 'image'
+        ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        : ['video/mp4', 'video/webm', 'video/quicktime'];
+
+    const maxSize = mediaType === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
+    const maxFiles = 5;
+
+    const validFiles = [];
+
+    for (const file of selectedFiles) {
+      if (!allowedTypes.includes(file.type)) {
+        setAttachmentError(
+          mediaType === 'image'
+            ? 'Choose JPG, PNG, WEBP, or GIF images.'
+            : 'Choose MP4, WEBM, or MOV videos.'
+        );
+        continue;
+      }
+
+      if (file.size > maxSize) {
+        setAttachmentError(
+          `${file.name} is too large. Maximum size: ${mediaType === 'image' ? '10 MB' : '50 MB'
+          }.`
+        );
+        continue;
+      }
+
+      validFiles.push({
+        file,
+        mediaType,
+        previewUrl: URL.createObjectURL(file),
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      });
+    }
+
+    setAttachments((previous) => {
+      const combined = [...previous, ...validFiles];
+
+      if (combined.length > maxFiles) {
+        setAttachmentError('You can attach a maximum of 5 files per post.');
+        combined.slice(maxFiles).forEach((item) => {
+          URL.revokeObjectURL(item.previewUrl);
+        });
+        return combined.slice(0, maxFiles);
+      }
+
+      return combined;
+    });
+  };
+
+  const removeAttachment = (id) => {
+    setAttachments((previous) => {
+      const item = previous.find((attachment) => attachment.id === id);
+
+      if (item) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+
+      return previous.filter((attachment) => attachment.id !== id);
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -89,13 +168,24 @@ export const SubmitPage = () => {
 
     setLoading(true);
     try {
-      const res = await api.post('/posts', {
-        title: title.trim(),
-        body: body.trim(),
-        type,
-        linkUrl: type === 'link' ? linkUrl.trim() : undefined,
-        communityId: selectedCommunity,
+
+      const formData = new FormData();
+
+      formData.append('title', title.trim());
+      formData.append('body', body.trim());
+      formData.append('type', type);
+      formData.append('communityId', selectedCommunity);
+
+      if (type === 'link') {
+        formData.append('linkUrl', linkUrl.trim());
+      }
+
+      attachments.forEach((attachment) => {
+        formData.append('media', attachment.file);
       });
+
+      const res = await api.post('/posts', formData);
+
 
       if (res.data?.success) {
         success('Discussion published!');
@@ -166,11 +256,10 @@ export const SubmitPage = () => {
               <button
                 type="button"
                 onClick={() => setType('text')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                  type === 'text'
-                    ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-subtle'
-                    : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold border transition-all ${type === 'text'
+                  ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-subtle'
+                  : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                  }`}
               >
                 <FileText className="w-4 h-4" />
                 <span>Text Discussion</span>
@@ -179,11 +268,10 @@ export const SubmitPage = () => {
               <button
                 type="button"
                 onClick={() => setType('link')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                  type === 'link'
-                    ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-subtle'
-                    : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold border transition-all ${type === 'link'
+                  ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-subtle'
+                  : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                  }`}
               >
                 <Link2 className="w-4 h-4" />
                 <span>Link / Article</span>
@@ -236,6 +324,89 @@ export const SubmitPage = () => {
               maxLength={10000}
               className="w-full rounded-xl border border-neutral-300 bg-white p-3.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 placeholder:text-neutral-400"
             />
+          </div>
+          {/* Media Attachments */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-xs font-semibold text-neutral-700">
+                Attach media
+              </p>
+
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 cursor-pointer">
+                  <ImageIcon className="w-4 h-4" />
+                  Photo
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => handleAttachmentSelect(event, 'image')}
+                    disabled={loading}
+                  />
+                </label>
+
+                <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-neutral-200 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 cursor-pointer">
+                  <Video className="w-4 h-4" />
+                  Video
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => handleAttachmentSelect(event, 'video')}
+                    disabled={loading}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-neutral-500">
+              Up to 5 files. Images: 10 MB each. Videos: 50 MB each.
+            </p>
+
+            {attachmentError && (
+              <p className="text-xs text-rose-600">{attachmentError}</p>
+            )}
+
+            {attachments.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {attachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className="relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50"
+                  >
+                    {attachment.mediaType === 'image' ? (
+                      <img
+                        src={attachment.previewUrl}
+                        alt={attachment.file.name}
+                        className="w-full h-32 object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={attachment.previewUrl}
+                        controls
+                        className="w-full h-32 object-cover"
+                      />
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(attachment.id)}
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-white hover:bg-black"
+                      aria-label={`Remove ${attachment.file.name}`}
+                      title="Remove attachment"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+
+                    <p className="px-2 py-1.5 text-[11px] text-neutral-600 truncate">
+                      {attachment.file.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}
